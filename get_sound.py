@@ -12,10 +12,13 @@ client.set_token(client_secret, "token")
 
 def get_sound(query):
     results = client.text_search(query=query,fields="id,name,previews")
-    print(results)
+    count = 0
     for sound in results:
-        sound.retrieve_preview(".",sound.name+".mp3")
-        print(sound.name)
+        sound.retrieve_preview("./outputs/sounds",sound.name+".mp3")
+        print("Sound Name: ", sound.name)
+        count += 1
+        if count > 2:
+            break
 
 
 
