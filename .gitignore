@@ -1,3 +1,6 @@
+outputs/speech/*
+outputs/sounds/*
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
