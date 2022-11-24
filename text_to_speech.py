@@ -1,6 +1,6 @@
 import pyttsx3
 
-def text_to_speech(text, output_file = "tts2.mp3", output_dir = "outputs/speech/"):
+def text_to_speech(text, output_file = "tts.mp3", output_dir = "outputs/speech/"):
     engine = pyttsx3.init() # object creation
 
     """ RATE"""
