@@ -1,13 +1,20 @@
 import os
 import openai
 from dotenv import load_dotenv
+from tenacity import (
+    retry,
+    stop_after_attempt,
+    wait_random_exponential,
+)  # for exponential backoff
 
 load_dotenv()
 openai.api_key = os.getenv("OPENAI_API_KEY")
 
-def get_prompt(prompt, engine='text-davinci-002', response_length=256,
+
+@retry(wait=wait_random_exponential(min=1, max=60), stop=stop_after_attempt(6))
+def get_prompt(prompt, engine='text-davinci-003', response_length=256,
          temperature=0.7, top_p=1, frequency_penalty=0, presence_penalty=0,
-         start_text='', restart_text='', stop_seq=[]):
+         start_text='', restart_text='', stop_seq=[], **kwargs):
     response = openai.Completion.create(
         prompt=prompt + start_text,
         engine=engine,
