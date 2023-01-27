@@ -60,6 +60,8 @@ if __name__ == '__main__':
         print(verbs, action)
  
         # Check if reps are seconds or count
+        # Get the responses here
+
         if exercise == "Handstands":
             hold_time = reps
             answer = chat(prompt + "Continue the story with John doing a {}-second {}, don't end the story.".format(hold_time, exercise)) 
