@@ -1,8 +1,10 @@
-import random
-import time
+import os
 import speech_recognition as sr
+import logging
+from utils import timing
 
-def recognize_speech_from_mic():
+@timing
+def recognize_speech_from_mic(iteration, SPEECH_DIR):
     recognizer = sr.Recognizer()
     microphone = sr.Microphone()
     """Transcribe speech from recorded from `microphone`.
@@ -28,7 +30,7 @@ def recognize_speech_from_mic():
 
     with microphone as source:
         recognizer.adjust_for_ambient_noise(source)
-        audio = recognizer.listen(source, timeout=10)
+        audio = recognizer.listen(source, timeout=20)
 
     # set up the response object
     response = {
@@ -50,69 +52,9 @@ def recognize_speech_from_mic():
         # speech was unintelligible
         response["error"] = "Unable to recognize speech"
 
+    if response["error"] is None:
+        with open(os.path.join(SPEECH_DIR,"story_{}_mc_response.wav".format(iteration)), "wb") as file:
+            file.write(audio.get_wav_data())
+            logging.info("Storing user response. Success.")
+
     return response
-
-
-if __name__ == "__main__":
-    # set the list of words, maxnumber of guesses, and prompt limit
-    WORDS = ["apple", "banana", "grape", "orange", "mango", "lemon"]
-    NUM_GUESSES = 3
-    PROMPT_LIMIT = 5
-
-    # get a random word from the list
-    word = random.choice(WORDS)
-
-    # format the instructions string
-    instructions = (
-        "I'm thinking of one of these words:\n"
-        "{words}\n"
-        "You have {n} tries to guess which one.\n"
-    ).format(words=', '.join(WORDS), n=NUM_GUESSES)
-
-    # show instructions and wait 3 seconds before starting the game
-    print(instructions)
-    time.sleep(3)
-
-    for i in range(NUM_GUESSES):
-        # get the guess from the user
-        # if a transcription is returned, break out of the loop and
-        #     continue
-        # if no transcription returned and API request failed, break
-        #     loop and continue
-        # if API request succeeded but no transcription was returned,
-        #     re-prompt the user to say their guess again. Do this up
-        #     to PROMPT_LIMIT times
-        for j in range(PROMPT_LIMIT):
-            print('Guess {}. Speak!'.format(i+1))
-            guess = recognize_speech_from_mic()
-            print("guess")
-            print(guess)
-            if guess["transcription"]:
-                break
-            if not guess["success"]:
-                break
-            print("I didn't catch that. What did you say?\n")
-
-        # if there was an error, stop the game
-        if guess["error"]:
-            print("ERROR: {}".format(guess["error"]))
-            break
-
-        # show the user the transcription
-        print("You said: {}".format(guess["transcription"]))
-
-        # determine if guess is correct and if any attempts remain
-        guess_is_correct = guess["transcription"].lower() == word.lower()
-        user_has_more_attempts = i < NUM_GUESSES - 1
-
-        # determine if the user has won the game
-        # if not, repeat the loop if user has more attempts
-        # if no attempts left, the user loses the game
-        if guess_is_correct:
-            print("Correct! You win!".format(word))
-            break
-        elif user_has_more_attempts:
-            print("Incorrect. Try again.\n")
-        else:
-            print("Sorry, you lose!\nI was thinking of '{}'.".format(word))
-            break

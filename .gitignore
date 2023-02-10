@@ -2,6 +2,7 @@ outputs/speech/*
 outputs/sounds/*
 outputs/backgrounds/*
 outputs/*.mp3
+outputs/
 tests/*
 env*/
 
