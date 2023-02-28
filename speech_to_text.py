@@ -30,7 +30,7 @@ def recognize_speech_from_mic(iteration, SPEECH_DIR):
 
     with microphone as source:
         recognizer.adjust_for_ambient_noise(source)
-        audio = recognizer.listen(source, timeout=20)
+        audio = recognizer.listen(source, timeout=30)
 
     # set up the response object
     response = {

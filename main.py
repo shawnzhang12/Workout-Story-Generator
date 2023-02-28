@@ -14,7 +14,6 @@ from get_workout import get_workout
 from get_prompt import query_gpt
 from speech_to_text import recognize_speech_from_mic
 
-@timing
 def separate_script(script):
     '''
     Separates the script into lines for the narrator, and lines for the sidekick, 
@@ -25,9 +24,9 @@ def separate_script(script):
     lines = script.split("\n")
     processed_lines = [re.sub(r".*?:", "", line) for line in lines]
     script = " ".join(processed_lines)
+    script = script.lstrip("\"\n\'\r\t")
     script = script.replace("\n", "")
-    script = script.lstrip("\"\n\'")
-
+    
     lines = []
     count = 0
     start_quote = True
@@ -37,13 +36,13 @@ def separate_script(script):
         if char == '"':
             if start_quote:
                 if current_substring.strip() != "":
-                    lines.append((count, 1, current_substring))
+                    lines.append((count, 0, current_substring))
                     count += 1
                 current_substring = ""
                 start_quote = False
             else:
                 if current_substring.strip() != "":
-                    lines.append((count, 0, current_substring))
+                    lines.append((count, 1, current_substring))
                     count += 1
                 current_substring = ""
                 start_quote = True
@@ -121,8 +120,8 @@ def main(workout_file=None, mode=["manual", "semi-auto", "auto"], timed=[True, F
             audiofile_start = script_to_speech(lines,SPEECH_DIR,0,other_sounds=os.path.join(SOUNDS_DIR, "start_tone1.wav"))
             
             #  Prep workout response
-            workout_thread = ThreadWithReturnValue(target=setup_workout, args=(master_storyline, reps, exercise, 0))
-            workout_thread.start()
+            workout_setup_thread = ThreadWithReturnValue(target=setup_workout, args=(master_storyline, reps, exercise, 0))
+            workout_setup_thread.start()
 
             #  Play story file
             playsound(audiofile_start)
@@ -135,7 +134,7 @@ def main(workout_file=None, mode=["manual", "semi-auto", "auto"], timed=[True, F
             waiting_thread = threading.Thread(target= (lambda: playsound(os.path.join(SOUNDS_DIR, "waiting.wav"))))
             waiting_thread.start()
 
-            answer = recognize_speech_from_mic(i)
+            answer = recognize_speech_from_mic(i, SPEECH_DIR)
 
             ## TODO: handle exception when no answer is received within 20 seconds, probably auto generate/continue story
             logging.info("Answer has been accepted from mic.")
@@ -150,7 +149,7 @@ def main(workout_file=None, mode=["manual", "semi-auto", "auto"], timed=[True, F
                 print("ERROR: {}".format(answer["error"]))
                 return Exception
 
-            sidekick_response, sidekick_audio_file = workout_thread.join()
+            sidekick_response, sidekick_audio_file = workout_setup_thread.join()
             playsound(sidekick_audio_file)
 
             # play workout music and process answer
@@ -164,7 +163,7 @@ def main(workout_file=None, mode=["manual", "semi-auto", "auto"], timed=[True, F
 
             gpt_output = query_gpt(master_storyline + "\n" + main_character_response + "\n" + sidekick_response + "\n" + 
             """Continue the story centered around the main character's response with dialogue between the narrator and the sidekick now that the workout is done.
-            Always put quotes around the sidekick's lines. Never put quotes around narrator text.
+            Always put double quotes around the sidekick's lines. Never put quotes around narrator text.
             Don't end the story. End output with the sidekick asking me what to do next.""")   
             logging.info("Storyline {}: {}".format(i, gpt_output))
             master_storyline += "\n" + gpt_output
@@ -172,12 +171,11 @@ def main(workout_file=None, mode=["manual", "semi-auto", "auto"], timed=[True, F
             lines = separate_script(gpt_output)
             audiofile = script_to_speech(lines,SPEECH_DIR,i,other_sounds=os.path.join(SOUNDS_DIR, "start_tone1.wav"))
 
-            workout_thread = ThreadWithReturnValue(target=setup_workout, args=(master_storyline, reps, exercise, 0))
-            workout_thread.start()
-
-            playsound(r"{}".format(audiofile))
+            workout_setup_thread = ThreadWithReturnValue(target=setup_workout, args=(master_storyline, reps, exercise, i))
+            workout_setup_thread.start()
 
             working_thread.join()
+            playsound(r"{}".format(audiofile))
             # END MANUAL
 
         elif mode == "semi-auto":
@@ -203,7 +201,7 @@ if __name__ == '__main__':
     The narrator must speak in third person. The sidekick must speak directly to me in second person.
     You will come up with entertaining stories that are engaging, imaginative and captivating. 
     The story must have extremely detailed world building and be very descriptive. 
-    I want the sidekick to have their own style and vocabulary befitting their role in the story. Always put quotes around the sidekick's lines.
+    I want the sidekick to have their own style and vocabulary befitting their role in the story. Always put double quotes around the sidekick's lines.
     Never put quotes around narrator text. Never put quotes around the main character's text.
     I am the main character. Stop text generation when it is the main character's turn to speak. 
     The starting information is {}. Begin the story introduction with the narrator. End the output with the sidekick asking me what to do next."
@@ -212,6 +210,8 @@ if __name__ == '__main__':
     SIDEKICK_WORKOUT_INTERJECTION = """
     Assume that the sidekick asked the main character "What to do next?". 
     Write a response from the sidekick that agrees with whatever answer and continues the story by motivating the main character to do {} {}.
+    Always put double quotes around the sidekick's lines.
+    Never put quotes around narrator text.
     End with the sidekick giving motivation for the main character to start right now!.
     I want the sidekick to have their own style and vocabulary befitting their role in the story.
     """

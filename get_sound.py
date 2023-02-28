@@ -100,3 +100,5 @@ def play_working(file_path, workout_time):
 
     # Terminate the PyAudio object
     p.terminate()
+
+    return None
