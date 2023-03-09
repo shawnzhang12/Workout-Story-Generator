@@ -1,0 +1,84 @@
+body{
+    font-family: Arial, sans-serif;
+  }
+  
+  .table{
+    width: 100%;
+  }
+  
+  .table thead th{
+    padding: 10px 10px;
+    background: #00adee;
+    font-size: 15px;
+    text-transform: uppercase;
+    vertical-align: top;
+    color: #1D4A5A;
+    font-weight: normal;
+    text-align: left;
+  }
+  
+  .table tbody tr td{
+    padding: 10px;
+    background: #f2f2f2;
+    font-size: 14px;
+  }
+  
+  .add, .edit, .save, .delete{
+    outline: none;
+    background: none;
+    border: none;
+  }
+  
+  .edit, .save, .delete{
+    padding: 5px 10px;
+    cursor: pointer;
+  }
+  
+  .add{
+    float: right;
+    background: transparent;
+    border: 1px solid #ffffff;
+    color: #ffffff;
+    font-size: 13px;
+    padding: 0;
+    padding: 3px 5px;
+    cursor: pointer;
+  }
+  
+  .add:hover{
+    background: #ffffff;
+    color: #00adee;
+  }
+  
+  .save{
+    display: none;
+    background: #32AD60;
+    color: #ffffff;
+  }
+  
+  .save:hover{
+    background: darken(#32AD60, 10%);
+  }
+  
+  .edit{
+    background: #2199e8;
+    color: #ffffff;
+  }
+  
+  .edit:hover{
+    background: darken(#2199e8, 10%);
+  }
+  
+  .delete{
+    background: #EC5840;
+    color: #ffffff;
+  }
+  
+  .delete:hover{
+    background: darken(#EC5840, 10%);
+  }
+
+  input.table-input {
+    width: 100%;
+
+  }

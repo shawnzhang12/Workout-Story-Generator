@@ -1,10 +1,39 @@
 {% extends 'base.html' %}
+{% from 'bootstrap5/form.html' import render_form, render_field, render_form_row %}
 
 {% block content %}
-<h1>Bootstrap-Flask Demo Application</h1>
-<p>This demo uses Bootstrap version 5.</p>
-<ul>
-    <li><a href="{{ url_for('test_form') }}">Form</a></li>
-    <li><a href="{{ url_for('test_table') }}">Table</a></li>
-</ul>
+
+    <h2>Personal Workout Story Generator</h2>
+    <pre>
+    Welcome to your personal workout story generator!
+    Configure your workout session below and let's get started!
+    </pre>
+
+    <table class="table data">
+      <thead>
+        <tr>
+          <th>Exercise</th>
+          <th># of Reps (add 's' for seconds)</th>
+          <th># of Sets</th>
+          <th>Actions <button class="add">Add new</button></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for exercise in exercises %}
+        <tr data-id="{{ exercise.id }}">
+          <td>{{ exercise.name }}</td>
+          <td>{{ exercise.reps }}</td>
+          <td>{{ exercise.sets }}</td>
+          <td>
+            <button class="save">Save</button>
+            <button class="edit">Edit</button>
+            <button class="delete">Delete</button>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    {{ render_form(workout_form) }}
+   
 {% endblock %}

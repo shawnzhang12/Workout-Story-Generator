@@ -1,9 +1,7 @@
 import os
 import speech_recognition as sr
 import logging
-from utils import timing
 
-@timing
 def recognize_speech_from_mic(iteration, SPEECH_DIR):
     recognizer = sr.Recognizer()
     microphone = sr.Microphone()
@@ -30,7 +28,7 @@ def recognize_speech_from_mic(iteration, SPEECH_DIR):
 
     with microphone as source:
         recognizer.adjust_for_ambient_noise(source)
-        audio = recognizer.listen(source, timeout=30)
+        audio = recognizer.listen(source, timeout=10)
 
     # set up the response object
     response = {
@@ -56,5 +54,8 @@ def recognize_speech_from_mic(iteration, SPEECH_DIR):
         with open(os.path.join(SPEECH_DIR,"story_{}_mc_response.wav".format(iteration)), "wb") as file:
             file.write(audio.get_wav_data())
             logging.info("Storing user response. Success.")
+    else:
+        response["transcription"] = "Let's just continue on with the story."
+        logging.info("User response. Failed.")
 
     return response

@@ -2,6 +2,7 @@ import os
 import wave
 import pyaudio
 import freesound
+from playsound import playsound
 from datetime import datetime
 from moviepy.editor import *
 from dotenv import load_dotenv
@@ -42,6 +43,7 @@ def concatenate_audio_moviepy(audio_clip_paths, output_path, background_music=No
     else:
         final_clip.write_audiofile(output_path)
 
+# WHY SEG FAULTSSSS
 def play_waiting(file_path, stop_event):
     # Open the wave file
     wf = wave.open(file_path, 'rb')
@@ -70,6 +72,7 @@ def play_waiting(file_path, stop_event):
 
     # Terminate the PyAudio object
     p.terminate()
+
 
 @timing
 def play_working(file_path, workout_time):

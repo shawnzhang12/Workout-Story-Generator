@@ -12,7 +12,7 @@ def folder_creation(name=None):
             datetime.now().strftime('%Y-%m-%d'))
     if not os.path.exists(rootdir):
         os.makedirs(rootdir)
-    os.makedirs
+
     if name is None:
         mydir = os.path.join(
             rootdir,
