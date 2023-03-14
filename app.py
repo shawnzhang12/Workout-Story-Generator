@@ -1,6 +1,8 @@
 import os
-
+import sys
 from get_prompt import generate_random_prompt
+from story_gen import start_story_generation
+from story_gen_SEQ_METHOD import start_story_generation_SEQ_MODE
 
 from flask import Flask, render_template, request, flash, redirect, url_for
 from flask_session import Session
@@ -44,16 +46,17 @@ class Exercise(db.Model):
 class WorkoutForm(FlaskForm):
     starting_prompt = TextAreaField(description="Set up the premise of your very own action/fantasy story however you like!", render_kw={"rows": 3}) 
     workout_mode = SelectField(choices=[('Interactive', 'Interactive'), ('Auto', 'Auto')], 
-                               description="'Interactive' enables user input to steer the story, 'Auto' lets the story continue by itself.") 
-    random_prompt = SubmitField()                     
+                               description="'Interactive' enables user input to steer the story, 'Auto' lets the story continue by itself.")                      
+    random_prompt = SubmitField()
     submit = SubmitField('Begin Workout!')
 
 @app.route('/', methods=['GET', 'POST'])
 def index():
     form = WorkoutForm()
+    exercises = Exercise.query.all()
+
     if form.random_prompt.data == True:
        form.starting_prompt.data = generate_random_prompt("Shawn")
-       exercises = Exercise.query.all()
        return render_template(
         'index.html',
         workout_form=form,
@@ -64,10 +67,9 @@ def index():
             flash('Loading your story!')
             starting_prompt = form.starting_prompt.data
             workout_mode = form.workout_mode.data
-            #start_story_generation(mode=workout_mode, starting_prompt=starting_prompt, workout_file=None)
+            #TODO: Merge with legacy start story
+            start_story_generation_SEQ_MODE(starting_prompt=starting_prompt, workout_input=exercises)
             return redirect(url_for('test_nav'))
-
-    exercises = Exercise.query.all()
 
     return render_template(
         'index.html',

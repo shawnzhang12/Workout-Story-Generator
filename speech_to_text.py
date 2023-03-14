@@ -55,7 +55,19 @@ def recognize_speech_from_mic(iteration, SPEECH_DIR):
             file.write(audio.get_wav_data())
             logging.info("Storing user response. Success.")
     else:
-        response["transcription"] = "Let's just continue on with the story."
+        response["transcription"] = """
+        I want you to act as an interactive, immersive storyteller. 
+        The story must consist of a narrator, a main character, and a sidekick.
+        The narrator must speak in third person. The sidekick must speak directly to me in second person.
+        You will come up with entertaining stories that are engaging, imaginative, captivating, thrilling, and suspenseful. 
+        The story must have extremely detailed world building and be very descriptive. 
+        I want the sidekick to have their own style and vocabulary befitting their role in the story. 
+        Always put double double quotation mark quotes around the sidekick's text.
+        Never put double or single quotation marks around narrator text. 
+        Never put double or single quotation marks around the main character's text.
+        Continue the story with great depth and immersiveness. Don't end the story.
+        
+        """
         logging.info("User response. Failed.")
 
     return response

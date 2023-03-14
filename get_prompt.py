@@ -6,7 +6,6 @@ from tenacity import (
     stop_after_attempt,
     wait_random_exponential,
 )  # for exponential backoff
-from utils import timing
 
 import json
 import random
@@ -17,11 +16,10 @@ load_dotenv()
 openai.api_key = os.getenv("OPENAI_API_KEY")
 
 @retry(wait=wait_random_exponential(min=1, max=60), stop=stop_after_attempt(6))
-def query_gpt(prompt, engine='text-davinci-003', response_length=256,
-         temperature=0.5, top_p=1, frequency_penalty=1, presence_penalty=1,
-         start_text='', restart_text='', stop_seq=[], **kwargs):
+def query_gpt(prompt, engine='text-davinci-003', response_length=800,
+         temperature=0.7, top_p=1, frequency_penalty=1, presence_penalty=1, **kwargs):
     response = openai.Completion.create(
-        prompt=prompt + start_text,
+        prompt=prompt,
         engine=engine,
         max_tokens=response_length,
         temperature=temperature,
@@ -31,6 +29,20 @@ def query_gpt(prompt, engine='text-davinci-003', response_length=256,
     )
     answer = response.choices[0]['text']
     return answer
+
+@retry(wait=wait_random_exponential(min=1, max=60), stop=stop_after_attempt(6))
+def query_chatgpt(prompt, system_prompt, response_length=512,
+         temperature=0.7, top_p=1, frequency_penalty=1, presence_penalty=1, **kwargs):
+    response = openai.ChatCompletion.create(
+            model = 'gpt-3.5-turbo',
+            messages = [
+                {'role': 'system', 'content': system_prompt},
+                {"role": "user", "content": prompt},
+                ],
+    temperature = 0.5
+    )
+    return response['choices'][0]['message']['content']
+
 
 def apply_grammar(key, rules):
     grammar = tracery.Grammar(rules)

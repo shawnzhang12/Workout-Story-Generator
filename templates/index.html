@@ -6,9 +6,7 @@
     <h2>Personal Workout Story Generator</h2>
     <pre>
     Welcome to your personal workout story generator!
-    Configure your workout session below and let's get started!
-    </pre>
-
+    Configure your workout session below and let's get started!</pre>
     <table class="table data">
       <thead>
         <tr>
@@ -34,6 +32,6 @@
       </tbody>
     </table>
 
-    {{ render_form(workout_form) }}
+    {{ render_form(workout_form, button_map={'submit': 'primary', 'random_prompt': 'secondary'}) }}
    
 {% endblock %}
