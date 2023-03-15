@@ -10,7 +10,7 @@ from utils import *
 from get_sound import *
 from playsound import playsound
 from get_workout import get_workout
-from get_prompt import query_gpt, query_chatgpt
+from get_prompt import query_gpt, query_chatgpt, generate_random_prompt
 from speech_to_text import recognize_speech_from_mic
 import prompt_constants
 
@@ -96,7 +96,15 @@ def split_paragraph(script):
             in_quote = not in_quote
 
         start_index = index + 1
-    
+
+    # If only one speaker itll probably be the narrator, split into sentences
+    if len(result) == 1:
+        sentences = str(result[0][2]).split(".!?")
+        result = []
+        for i, s in enumerate(sentences):
+            result.append((i, 0, s))
+
+
     for line in result:
         if line[1] == 0:
             logging.info("Line {} voiced by NARRATOR:  {}".format(line[0], line[2]))
@@ -123,25 +131,24 @@ def initialize_worker(gpu):
     tts = TTS("tts_models/en/vctk/vits", gpu=gpu)
 
 
-def process_and_play_text(paragraph, speech_dir, iteration_number, name, gpu=False):
+def process_and_play_text(pool, paragraph, speech_dir, iteration_number, name, gpu=False):
     voices = {0: 'p267', 1: 'p273', 2: 'p330', 3:'p234', 4:'230'}
     paragraph.strip("\n\r\t\'")
     lines = split_paragraph(paragraph)
     manager = multiprocessing.Manager()
     audio_queue = manager.Queue() # to hold the audio objects returned by the text processing jobs
-    with multiprocessing.Pool(min(len(lines), multiprocessing.cpu_count()), initializer=initialize_worker, initargs=(gpu,)) as pool:
-        for (order, voice, text) in lines:
-            # submit a new text processing job to the pool
-            pid = voices[voice]
-            output_file = "story_{}_{}_{}.wav".format(name, iteration_number, order, pid)
-            a=(text, pid, os.path.join(speech_dir, output_file), gpu, order)
-            pool.apply_async(process_text, args=(a, audio_queue,))
-        pool.close()
-        # create a new thread to play the audio files
-        audio_thread = threading.Thread(target=play_audio_queue, args=(audio_queue, len(lines)))
-        audio_thread.start()
-        pool.join()
-        audio_thread.join()     
+
+    for (order, voice, text) in lines:
+        # submit a new text processing job to the pool
+        pid = voices[voice]
+        output_file = "story_{}_{}_{}.wav".format(name, iteration_number, order, pid)
+        a=(text, pid, os.path.join(speech_dir, output_file), gpu, order)
+        pool.apply_async(process_text, args=(a, audio_queue,))
+
+    # create a new thread to play the audio files
+    audio_thread = threading.Thread(target=play_audio_queue, args=(audio_queue, len(lines)))
+    audio_thread.start()
+    audio_thread.join()     
     manager.shutdown()
 
 # Plays one sentence at a time, in order, when available after being processed
@@ -179,61 +186,65 @@ def start_story_generation_SEQ_MODE(starting_prompt, workout_input, gpu=False):
     master_storyline = query_gpt(prompt_constants.CONST_BEGINNING_AUTO.format(starting_prompt))
     logging.info("Storyline (Beginning): {}".format(master_storyline))
 
-    process_and_play_text(master_storyline, SPEECH_DIR, 0, 0, gpu=gpu)
+    # Initialize Text-to-speech process, just use one TTS model for now
+    with multiprocessing.Pool(min(1, multiprocessing.cpu_count()), initializer=initialize_worker, initargs=(gpu,)) as pool:
 
-    # Iterate through workouts
-    for i in range(0, len(workout)):
-        # Get exercise
-        (exercise, reps, _) = workout[i]
-        logging.info("Current workout is {} {}.".format(reps, exercise))
-        sidekick_args = (reps, exercise, gpu, i, SPEECH_DIR, SOUNDS_DIR)
+        process_and_play_text(pool, master_storyline, SPEECH_DIR, 0, 0)
 
-        # Get user response
-        play_sidekick_text(*sidekick_args, workout=False, start_tone=1)
-        user_response = recognize_speech_from_mic(i, SPEECH_DIR)
-        logging.info("User response {}: {}".format(i, user_response))
+        # Iterate through workouts
+        for i in range(0, len(workout)):
+            # Get exercise
+            (exercise, reps, _) = workout[i]
+            logging.info("Current workout is {} {}.".format(reps, exercise))
+            sidekick_args = (reps, exercise, gpu, i, SPEECH_DIR, SOUNDS_DIR)
 
-        # Output short user response response
-        user_continued_story = query_gpt(master_storyline + "\n" + prompt_constants.CONTINUE_USER_STORY.format(user_response))
-        master_storyline = master_storyline + " " + user_continued_story
-        process_and_play_text(user_continued_story, SPEECH_DIR, i, "user")
+            # Get user response
+            play_sidekick_text(*sidekick_args, workout=False, start_tone=1)
+            user_response = recognize_speech_from_mic(i, SPEECH_DIR)
+            logging.info("User response {}: {}".format(i, user_response))
 
-        # Get workout story
-        motion = get_motion(exercise)
-        gpt_output = query_gpt(master_storyline + "\n" + prompt_constants.CONTINUE_WITH_WORKOUT.format(motion))
-        print(gpt_output)
-        if gpt_output.find("<STOP_TOKEN>") == -1:
-            gpt_output = query_gpt(master_storyline + " Append <STOP_TOKEN> to the end of the sentence where the main character completes the {} motion.".format(motion))
+            # Output short user response response
+            user_continued_story = query_gpt(master_storyline + "\n" + prompt_constants.CONTINUE_USER_STORY.format(user_response))
+            master_storyline = master_storyline + " " + user_continued_story
+            process_and_play_text(pool, user_continued_story, SPEECH_DIR, i, "user")
 
-        pre_workout, post_workout = gpt_output.split("<STOP_TOKEN>")
-        if post_workout == "":
-            post_workout = query_gpt(master_storyline + " Continue the story for a few more descriptive, juicy sentences")
-        master_storyline = master_storyline + " " + pre_workout + " " + post_workout
-        logging.info("Storyline {} (PRE): {}".format(i, pre_workout))
-        logging.info("Storyline {} (POST): {}".format(i, post_workout))
-        
-        # Play story and do workout
-        process_and_play_text(pre_workout, SPEECH_DIR, i, "pre")
-        play_sidekick_text(*sidekick_args, workout=True, start_tone=2)
-        # Change to loop and check for the word 'done'
-        workout_time = 25
-        play_working(workout_sound_file, workout_time)
-        process_and_play_text(post_workout, SPEECH_DIR, i, "post")
+            # Get workout story
+            motion = get_motion(exercise)
+            gpt_output = query_gpt(master_storyline + "\n" + prompt_constants.CONTINUE_WITH_WORKOUT.format(motion))
 
-    # End the story
-    conclusion = query_gpt(master_storyline + "Conclude the story. The sidekick congratulates the main character on them finishing their workouts.", response_length=512)
-    process_and_play_text(conclusion, SPEECH_DIR, len(workout), "conclude")
-    master_storyline += conclusion
-    with open(os.path.join(OUTPUT_DIR, "complete_storyline.txt"), "w") as f:
-        f.write(master_storyline)    
-    
+            if gpt_output.find("<STOP_TOKEN>") == -1:
+                gpt_output = query_gpt(master_storyline + " Append <STOP_TOKEN> to the end of the sentence where the main character completes the {} motion.".format(motion))
+
+            pre_workout, post_workout = gpt_output.split("<STOP_TOKEN>")
+            if post_workout == "":
+                post_workout = query_gpt(master_storyline + " Continue the story for a few more descriptive, juicy sentences")
+            master_storyline = master_storyline + " " + pre_workout + " " + post_workout
+            logging.info("Storyline {} (PRE): {}".format(i, pre_workout))
+            logging.info("Storyline {} (POST): {}".format(i, post_workout))
+            
+            # Play story and do workout
+            process_and_play_text(pool, pre_workout, SPEECH_DIR, i, "pre")
+            play_sidekick_text(*sidekick_args, workout=True, start_tone=2)
+            # Change to loop and check for the word 'done'
+            workout_time = 25
+            play_working(workout_sound_file, workout_time)
+            process_and_play_text(pool, post_workout, SPEECH_DIR, i, "post")
+
+        # End the story
+        conclusion = query_gpt(master_storyline + "Conclude the story. The sidekick congratulates the main character on them finishing their workouts.", response_length=512)
+        process_and_play_text(pool, conclusion, SPEECH_DIR, len(workout), "conclude")
+        master_storyline += conclusion
+        with open(os.path.join(OUTPUT_DIR, "complete_storyline.txt"), "w") as f:
+            f.write(master_storyline)  
+
+        # Explicit close  
+        pool.close()
     # THE END
 
 if __name__ == '__main__':
-
-    text = 'Shawn was a headhunter. He is trying to survive in the aftermath of the British bombing. He had an old rifle "what is up bros" and an old gas mask, but he needed more than that if he wanted to make it out alive. Suddenly his sidekick proclaimed, "Hi Shawn we are here!", and stopped. You decide to leave the building. You are on a mission to kill a captain named Simone. Your target lives in a nearby city.'
     starting_prompt = """You are Shawn. You are a headhunter trying to survive after the British bombed your country to the ground. You have an old rifle and an old gas mask.
     You are drinking with a stranger in a bar, but you need to get going. 
     You decide to leave the building. You are on a mission to kill a captain named Simone. Your target lives in a nearby city."""
+    starting_prompt = generate_random_prompt("Shawn")
     start_story_generation_SEQ_MODE(starting_prompt, "inputs/workout1.csv")
     

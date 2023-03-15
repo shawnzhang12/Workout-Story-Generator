@@ -69,6 +69,7 @@ Never put double or single quotation marks around the main character's text.
 Continue the story where the main character performs a {} motion.
 It must be a crucial aspect of the story and have good flow, well integrated into the story.
 It must be very detailed and descriptive. Don't end the story.
+Append <STOP_TOKEN> to the end of the sentence where the main character completes the motion.
 """
 
 FEW_SHOT = """ 
