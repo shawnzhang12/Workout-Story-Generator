@@ -1,23 +1,23 @@
-### Workout Story Generator
+## Workout Story Generator
 
 This project is a fun application of GPT's story generation capabilities integrated with a customizable workout routine for a more engaging, immersive workout. 
 
 Some people (referring to myself) tend to be bored of the monotonous, repetitive nature of exercise routines and lose motivation to persist or even start. 
-
 Also, it's easy to get distracted between sets as there is nothing really to do but be browse your phone -- a dangerous context switch. 
 ![](/static/home_page.png)
 
-Here are some of the project features that would help keep your full attention during the workout:smile::
+Here are some of the project features that would help keep your full attention during the workout:
 
-- Full Audio-based Storytelling (no reading or device handling required once it starts) :sound:
+- Full Audio-based Storytelling and Interaction :sound: (no reading or typing)
 
 - You are the main protagonist! :mage: You have a sidekick who will <u>regularly converse with you</u> through speaker/microphone in real-time so how the story plays out is up to you! There is also a narrator, who has a different voice profile than the sidekick for easy differentiation.
 
-- Workout exercises are integrated into the story:muscle:. Your story self will perform similar motions to overcome challenges so it adds relevance to your suffering.
+- Workout exercises are integrated into the story:muscle:. Your story self will perform similar motions to overcome challenges.
+
+- Fully customizable workouts :grin:
 
 - The rest time between sets? Now enjoy listening to the story advancements! :relieved:
 
-- Fully customizable workouts :grin:
 
 ### Getting Started
 
@@ -62,7 +62,7 @@ Here are some of the project features that would help keep your full attention d
    ```
 
 ### Roadmap
-- [ ] Still in development, may break while moving things around
-- [ ] Finetune prompts, optimize for speed, fix bugs
+- [ ] Still in development, may break while adding improvements
+- [ ] Finetune prompts, optimize for speed
 - [ ] Host on a website
 - [ ] Add actions workflow for CD
