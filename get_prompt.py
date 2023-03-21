@@ -16,7 +16,7 @@ load_dotenv()
 openai.api_key = os.getenv("OPENAI_API_KEY")
 
 @retry(wait=wait_random_exponential(min=1, max=60), stop=stop_after_attempt(6))
-def query_gpt(prompt, engine='text-davinci-003', response_length=800,
+def query_gpt(prompt, engine='text-davinci-003', response_length=256,
          temperature=0.7, top_p=1, frequency_penalty=1, presence_penalty=1, **kwargs):
     response = openai.Completion.create(
         prompt=prompt,
@@ -31,7 +31,7 @@ def query_gpt(prompt, engine='text-davinci-003', response_length=800,
     return answer
 
 @retry(wait=wait_random_exponential(min=1, max=60), stop=stop_after_attempt(6))
-def query_chatgpt(prompt, system_prompt, response_length=512,
+def query_chatgpt(prompt, system_prompt, response_length=256,
          temperature=0.7, top_p=1, frequency_penalty=1, presence_penalty=1, **kwargs):
     response = openai.ChatCompletion.create(
             model = 'gpt-3.5-turbo',
@@ -39,9 +39,13 @@ def query_chatgpt(prompt, system_prompt, response_length=512,
                 {'role': 'system', 'content': system_prompt},
                 {"role": "user", "content": prompt},
                 ],
-    temperature = 0.5
+        temperature = temperature,
+        top_p = top_p,
+        frequency_penalty = frequency_penalty,
+        presence_penalty = presence_penalty,
+        max_tokens = response_length
     )
-    return response['choices'][0]['message']['content']
+    return response['choices'][0]['message']['content'], response["usage"]
 
 
 def apply_grammar(key, rules):

@@ -55,7 +55,9 @@ def play_waiting(file_path, stop_event):
     p.terminate()
 
 @timing
-def play_working(file_path, workout_time):
+def play_working(file_path, workout_time, debug=False):
+    if debug:
+        return
     # Open the wave file
     wf = wave.open(file_path, 'rb')
 

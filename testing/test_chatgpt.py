@@ -21,8 +21,7 @@ def query_chatgpt(prompt, system_prompt, response_length=512,
                 ],
     temperature = 0.5
     )
-    for i in range(len(response['choices'][0])):
-        print(response['choices'][i]['message']['content'])
+    print(response["usage"]["total_tokens"])
     return response['choices'][0]['message']['content']
 
 if __name__=='__main__':
