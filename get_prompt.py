@@ -80,9 +80,9 @@ def direct(setting, key):
     return artefact
 
 def generate_random_prompt(name):
-    choices = {"fantasy": ["knight", "wizard", "peasant", "rogue", "noble"], "apocalyptic": ["mutant", "headhunter"]}
+    choices = {"fantasy": ["knight", "wizard", "peasant", "rogue", "noble"], "apocalyptic": ["headhunter"]}
 
-    genre = random.choice(list(choices))
+    genre = random.choices(list(choices), weights=(5,1), k=1)[0]
     character_type = random.choice(list(choices[genre]))
 
     context = generate(genre, character_type, "context")
