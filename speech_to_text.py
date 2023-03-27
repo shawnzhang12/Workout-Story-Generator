@@ -4,7 +4,6 @@ import logging
 import prompt_constants
 
 def get_user_response(iteration, SPEECH_DIR, debug=False):
-    return "Let's continue. Don't end the story."  
     if debug:
         response = {
             "transcription": "Let's continue. Don't end the story."  

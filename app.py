@@ -67,8 +67,7 @@ def index():
             flash('Loading your story!')
             starting_prompt = form.starting_prompt.data
             workout_mode = form.workout_mode.data
-            #TODO: Merge with legacy start story
-            start_story_generation_SEQ_MODE(starting_prompt=starting_prompt, workout_input=exercises)
+            start_story_generation_SEQ_MODE(starting_prompt=starting_prompt, workout_input=exercises, gpu=False, input_type="audio", debug=False, actual_exercise=False)
             return redirect(url_for('test_nav'))
 
     return render_template(

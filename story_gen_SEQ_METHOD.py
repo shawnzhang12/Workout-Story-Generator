@@ -17,7 +17,10 @@ from speech_to_text import get_user_response
 import prompt_constants
 
 
-def get_motion(exercise):
+def get_motion(exercise, actual_exercise=False):
+    if actual_exercise:
+        return exercise
+    
     with open('./grammar/workout_motions.json', 'r') as f:
         data = json.load(f)
     
@@ -143,12 +146,12 @@ def initialize_worker(gpu):
     tts = TTS("tts_models/en/vctk/vits", gpu=gpu)
 
 
-def process_and_play_text(pool, paragraph, speech_dir, iteration_number, name, gpu=False, debug=False):
+def process_and_play_text(pool, user_paragraph, workout_paragraph, speech_dir, iteration_number, name, gpu=False, debug=False):
     if debug:
         return
     voices = {0: 'p267', 1: 'p273', 2: 'p330', 3:'p234', 4:'230'}
-    paragraph.strip("\n\r\t\'")
-    lines = split_paragraph(paragraph)
+    user_paragraph.strip("\n\r\t\'")
+    lines = split_paragraph(user_paragraph)
     audio_files = []
     manager = multiprocessing.Manager()
     audio_queue = manager.Queue() # to hold the audio objects returned by the text processing jobs
@@ -160,9 +163,23 @@ def process_and_play_text(pool, paragraph, speech_dir, iteration_number, name, g
         a=(text, pid, output_file, gpu, order)
         audio_files.append(output_file)
         pool.apply_async(process_text, args=(a, audio_queue,))
+    
+    if workout_paragraph != "":
+        workout_lines = split_paragraph(workout_paragraph)
+        for (order, voice, text) in workout_lines:
+            # submit a new text processing job to the pool
+            order = order + len(lines)
+            pid = voices[voice]
+            output_file = os.path.join(speech_dir, "story_{}_{}_{}.wav".format(name, iteration_number, order, pid))
+            a=(text, pid, output_file, gpu, order)
+            audio_files.append(output_file)
+            pool.apply_async(process_text, args=(a, audio_queue,))
+        total_length = len(lines) + len(workout_lines)
+    else:
+        total_length = len(lines)
 
     # create a new thread to play the audio files
-    audio_thread = threading.Thread(target=play_audio_queue, args=(audio_queue, len(lines)))
+    audio_thread = threading.Thread(target=play_audio_queue, args=(audio_queue, total_length))
     audio_thread.start()
     audio_thread.join()     
     manager.shutdown()
@@ -185,7 +202,7 @@ def play_audio_queue(audio_queue, num_files):
             # check if the next audio file is ready to be played
             if next_audio_index in audio_pending:
                 audio = audio_pending.pop(next_audio_index)
-                # playsound(audio)
+                playsound(audio)
                 audio_done.add(next_audio_index)
                 next_audio_index += 1
 
@@ -208,7 +225,7 @@ def clip_text(storyline):
         storyline = storyline[:max_index+1]
     return storyline
 
-def start_story_generation_SEQ_MODE(starting_prompt, workout_input, gpu, input_type, debug, name=""):
+def start_story_generation_SEQ_MODE(starting_prompt, workout_input, gpu, input_type, debug, actual_exercise=False):
 
     OUTPUT_DIR, SOUNDS_DIR, SPEECH_DIR = folder_creation()
     logging.basicConfig(format='%(asctime)s:%(levelname)s:%(message)s', filename=os.path.join(OUTPUT_DIR, "logfile.log"), datefmt='%m/%d/%Y %I:%M:%S %p', level=logging.INFO)
@@ -224,12 +241,12 @@ def start_story_generation_SEQ_MODE(starting_prompt, workout_input, gpu, input_t
     with multiprocessing.Pool(min(2, multiprocessing.cpu_count()), initializer=initialize_worker, initargs=(gpu,)) as pool: 
         try:
             # Pregenerate all the sidekick text
-            # create_all_sidekick_text(pool, workout, SPEECH_DIR, gpu, debug)
-            master_storyline, usage = query_chatgpt(prompt_constants.BEGINNING.format(starting_prompt), prompt_constants.SYSTEM_PROMPT)
+            create_all_sidekick_text(pool, workout, SPEECH_DIR, gpu, debug)
+            master_storyline, usage = query_chatgpt(prompt_constants.BEGINNING.format(starting_prompt), prompt_constants.SYSTEM_PROMPT, response_length=256)
             logging.info("Storyline (Beginning): {}".format(master_storyline))
             
 
-            process_and_play_text(pool, master_storyline, SPEECH_DIR, 0, 0, gpu, debug)
+            process_and_play_text(pool, master_storyline, "", SPEECH_DIR, 0, "introduction", gpu, debug)
             add_to_complete_annotation_file("(Introduction)", "Introduction", OUTPUT_DIR, count_words(master_storyline), 
                                             usage["completion_tokens"], 
                                             os.path.join(SPEECH_DIR, "story_0_0_complete.wav"), master_storyline)
@@ -243,20 +260,14 @@ def start_story_generation_SEQ_MODE(starting_prompt, workout_input, gpu, input_t
                 logging.info("Current workout is {} {}.".format(reps, exercise))
 
                 # Get user response
-                # play_sidekick_text(i, SPEECH_DIR, SOUNDS_DIR, workout=False, start_tone=1, debug=debug)
+                play_sidekick_text(i, SPEECH_DIR, SOUNDS_DIR, workout=False, start_tone=1, debug=debug)
                 if input_type == "text":
                     user_response = input("What do you want to do now?\nYour Response: ")
                 else: # Audio 
                     user_response = get_user_response(i, SPEECH_DIR, debug)
                 logging.info("User response {}: {}".format(i, user_response))
 
-             
-                # FOR MECHANICAL TURK
-                with open(os.path.join(OUTPUT_DIR, "story_{}_iterations_{}.txt".format(name,i)), "w") as f:
-                    f.write(master_storyline) 
-
-
-                # Output user response
+                ########## USER CONTINUED STORY ##########
                 user_response_length = int((tts_wpm * (rest_time/2) // 60) * words_to_tokens)
                 user_continued_story, usage = query_chatgpt(summarized_storyline + "\n" + prompt_constants.CONTINUE_USER_RESPONSE.format(user_response), 
                                                     prompt_constants.SYSTEM_PROMPT,
@@ -271,16 +282,8 @@ def start_story_generation_SEQ_MODE(starting_prompt, workout_input, gpu, input_t
                 summarized_storyline = summarized_storyline + user_continued_story
 
 
-
-
-                process_and_play_text(pool, user_continued_story, SPEECH_DIR, i, "user", gpu, debug)
-                add_to_complete_annotation_file(i, "USER RESPONSE", OUTPUT_DIR, count_words(user_continued_story), 
-                                            usage["completion_tokens"], 
-                                            os.path.join(SPEECH_DIR, "story_{}_{}_complete.wav".format("user", i)), 
-                                            user_continued_story, 
-                                            allocated_rest_time=int((1 * int(rest_time) // 2)))
-
-                motion = get_motion(exercise)
+                ########## WORKOUT STORY ##########
+                motion = get_motion(exercise, actual_exercise=actual_exercise)
                 pre_workout_response_length = int((tts_wpm * (rest_time/2) // 60) * words_to_tokens)
 
                 if 's' in reps: # Check for plank, handstand, and other 'hold' positions
@@ -300,16 +303,23 @@ def start_story_generation_SEQ_MODE(starting_prompt, workout_input, gpu, input_t
 
                 add_to_eval_file(exercise, reps, pre_workout, OUTPUT_DIR)
                 logging.info("Storyline ({} words, suppose to be {} words) {} (WORKOUT STORY): {}".format(count_words(pre_workout), pre_workout_response_length,i, pre_workout))
-                
+
                 # Play story and do workout
-                process_and_play_text(pool, pre_workout, SPEECH_DIR, i, "workout", gpu, debug)
+                process_and_play_text(pool, user_continued_story, pre_workout, SPEECH_DIR, i, "workout", gpu, debug)
+
+                add_to_complete_annotation_file(i, "USER RESPONSE", OUTPUT_DIR, count_words(user_continued_story), 
+                                            usage["completion_tokens"], 
+                                            os.path.join(SPEECH_DIR, "story_{}_{}_complete.wav".format("user", i)), 
+                                            user_continued_story, 
+                                            allocated_rest_time=int((1 * int(rest_time) // 2)))
+                
                 add_to_complete_annotation_file(i, "WORKOUT STORY", OUTPUT_DIR, count_words(pre_workout), 
                                             usage["completion_tokens"], 
                                             os.path.join(SPEECH_DIR, "story_{}_{}_complete.wav".format("workout", i)), 
                                             pre_workout, 
                                             allocated_rest_time=int((1 * int(rest_time) // 2)), reps=reps, exercise=exercise)
 
-                # play_sidekick_text(i, SPEECH_DIR, SOUNDS_DIR, workout=True, start_tone=2, debug=debug)
+                play_sidekick_text(i, SPEECH_DIR, SOUNDS_DIR, workout=True, start_tone=2, debug=debug)
                 # Change to loop and check for the word 'done'
                 #workout_time = 25
                 #workout_sound_file = os.path.join(SOUNDS_DIR, "fast_workout.wav")
@@ -317,7 +327,7 @@ def start_story_generation_SEQ_MODE(starting_prompt, workout_input, gpu, input_t
 
             # End the story
             conclusion, usage = query_chatgpt(summarized_storyline + "\n" + prompt_constants.CONCLUSION, prompt_constants.SYSTEM_PROMPT, response_length=256)
-            process_and_play_text(pool, conclusion, SPEECH_DIR, i, "conclusion", gpu, debug)
+            process_and_play_text(pool, conclusion, "", SPEECH_DIR, i, "conclusion", gpu, debug)
             add_to_complete_annotation_file("(CONCLUSION)", "CONCLUSION", OUTPUT_DIR, count_words(conclusion), 
                                             usage["completion_tokens"], os.path.join(SPEECH_DIR, "story_{}_{}_complete.wav".format("conclusion", i)), 
                                             conclusion)
@@ -346,8 +356,7 @@ if __name__ == '__main__':
     name = "Shawn"
     #starting_prompt = generate_random_prompt(name)
     #start_story_generation_SEQ_MODE(starting_prompt, "inputs/workout4.csv", gpu=torch.cuda.is_available(), input_type=input_type, debug=True)
-    for i in range(10):
-        name = random.choice(["Sebastian", "Rory", "Nolan", "Orlando", "Serena"])
-        starting_prompt = generate_random_prompt(name)
-        start_story_generation_SEQ_MODE(starting_prompt, "inputs/workout_all.csv", gpu=torch.cuda.is_available(), input_type=input_type, debug=False, name=i+1)
+    name = random.choice(["Sebastian", "Rory", "Nolan", "Orlando", "Serena"])
+    starting_prompt = generate_random_prompt(name)
+    start_story_generation_SEQ_MODE(starting_prompt, "inputs/workout_all.csv", gpu=torch.cuda.is_available(), input_type=input_type, debug=False, actual_exercise=True)
     
