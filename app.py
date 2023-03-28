@@ -1,16 +1,18 @@
 import os
-import sys
+import json
+import requests
 from get_prompt import generate_random_prompt
-from story_gen import start_story_generation
 from story_gen_SEQ_METHOD import start_story_generation_SEQ_MODE
 
-from flask import Flask, render_template, request, flash, redirect, url_for
+from flask import Flask, render_template, request, flash, redirect, url_for, session
 from flask_session import Session
 from flask_wtf import FlaskForm, CSRFProtect
 from wtforms.validators import DataRequired, Length
 from wtforms.fields import *
 from flask_bootstrap import Bootstrap5, SwitchField
 from flask_sqlalchemy import SQLAlchemy
+from flask_executor import Executor
+import torch
 
 app = Flask(__name__, static_folder='static')
 app.secret_key = os.urandom(32)
@@ -32,9 +34,16 @@ app.config['WTF_CSRF_CHECK_DEFAULT'] = False
 app.config['BOOTSTRAP_BOOTSWATCH_THEME'] = 'sketchy'
 Session(app)
 
+# Initialize the executor after initializing the app
+executor = Executor(app)
 bootstrap = Bootstrap5(app)
 db = SQLAlchemy(app)
 csrf_token = CSRFProtect(app)
+
+# GLOBAL VARIABLES
+story_complete = False
+story_file_path = os.path.join("outputs","master_storyline.txt")
+
 
 class Exercise(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -67,7 +76,13 @@ def index():
             flash('Loading your story!')
             starting_prompt = form.starting_prompt.data
             workout_mode = form.workout_mode.data
-            start_story_generation_SEQ_MODE(starting_prompt=starting_prompt, workout_input=exercises, gpu=False, input_type="audio", debug=False, actual_exercise=False)
+            executor.submit(start_story_generation_SEQ_MODE, 
+                            starting_prompt=starting_prompt, 
+                            workout_input=exercises, 
+                            gpu=torch.cuda.is_available(), 
+                            input_type="audio", 
+                            debug=False, 
+                            actual_exercise=False)
             return redirect(url_for('test_nav'))
 
     return render_template(
@@ -76,7 +91,24 @@ def index():
         exercises=exercises
     )
 
-@app.route('/nav', methods=['GET', 'POST'])
+@app.route('/get_story_chunks', methods=['GET'])
+def get_story_chunks():
+    global story_complete  # Access the global variable
+
+    print(os.getcwd())
+    print(story_file_path)
+    if not os.path.exists(story_file_path):
+        print("HMM")
+        return json.dumps({"chunks": [], "completed": False})
+
+    print("it exists")
+    with open(story_file_path, "r") as story_file:
+        story_chunks = story_file.readlines()
+        print(story_chunks)
+
+    return json.dumps({"chunks": story_chunks, "completed": story_complete})
+
+@app.route('/story', methods=['GET', 'POST'])
 def test_nav():
     return render_template('nav.html')
 

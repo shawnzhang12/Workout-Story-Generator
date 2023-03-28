@@ -229,7 +229,8 @@ def start_story_generation_SEQ_MODE(starting_prompt, workout_input, gpu, input_t
 
     OUTPUT_DIR, SOUNDS_DIR, SPEECH_DIR = folder_creation()
     logging.basicConfig(format='%(asctime)s:%(levelname)s:%(message)s', filename=os.path.join(OUTPUT_DIR, "logfile.log"), datefmt='%m/%d/%Y %I:%M:%S %p', level=logging.INFO)
-  
+    story_file_path = os.path.join("outputs", "master_storyline.txt")
+
     workout = get_workout(workout_input, shuffle=True)
     logging.info("Complete Workout: {}".format(workout))
     tts_wpm = 190
@@ -245,6 +246,8 @@ def start_story_generation_SEQ_MODE(starting_prompt, workout_input, gpu, input_t
             master_storyline, usage = query_chatgpt(prompt_constants.BEGINNING.format(starting_prompt), prompt_constants.SYSTEM_PROMPT, response_length=256)
             logging.info("Storyline (Beginning): {}".format(master_storyline))
             
+            with open(story_file_path, "w") as f:
+                f.write(master_storyline) 
 
             process_and_play_text(pool, master_storyline, "", SPEECH_DIR, 0, "introduction", gpu, debug)
             add_to_complete_annotation_file("(Introduction)", "Introduction", OUTPUT_DIR, count_words(master_storyline), 
@@ -253,7 +256,7 @@ def start_story_generation_SEQ_MODE(starting_prompt, workout_input, gpu, input_t
             summarized_storyline = master_storyline
 
             # Iterate through workouts
-            for i in range(0, 3):
+            for i in range(0, len(workout)):
                 # Get exercise
                 (exercise, reps, rest_time) = workout[i]
                 rest_time = int(rest_time)
@@ -280,7 +283,8 @@ def start_story_generation_SEQ_MODE(starting_prompt, workout_input, gpu, input_t
                 
                 master_storyline = master_storyline + " " + user_continued_story
                 summarized_storyline = summarized_storyline + user_continued_story
-
+                with open(story_file_path, "w") as f:
+                    f.write(master_storyline) 
 
                 ########## WORKOUT STORY ##########
                 motion = get_motion(exercise, actual_exercise=actual_exercise)
@@ -300,6 +304,9 @@ def start_story_generation_SEQ_MODE(starting_prompt, workout_input, gpu, input_t
 
                 master_storyline = master_storyline + " " + pre_workout
                 summarized_storyline = summarized_storyline + " " + pre_workout
+
+                with open(story_file_path, "w") as f:
+                    f.write(master_storyline) 
 
                 add_to_eval_file(exercise, reps, pre_workout, OUTPUT_DIR)
                 logging.info("Storyline ({} words, suppose to be {} words) {} (WORKOUT STORY): {}".format(count_words(pre_workout), pre_workout_response_length,i, pre_workout))
@@ -326,14 +333,14 @@ def start_story_generation_SEQ_MODE(starting_prompt, workout_input, gpu, input_t
                 #play_working(workout_sound_file, workout_time, debug)
 
             # End the story
-            conclusion, usage = query_chatgpt(summarized_storyline + "\n" + prompt_constants.CONCLUSION, prompt_constants.SYSTEM_PROMPT, response_length=256)
+            conclusion, usage = query_chatgpt(summarized_storyline + "\n" + prompt_constants.CONCLUSION, prompt_constants.SYSTEM_PROMPT, response_length=512)
             process_and_play_text(pool, conclusion, "", SPEECH_DIR, i, "conclusion", gpu, debug)
             add_to_complete_annotation_file("(CONCLUSION)", "CONCLUSION", OUTPUT_DIR, count_words(conclusion), 
                                             usage["completion_tokens"], os.path.join(SPEECH_DIR, "story_{}_{}_complete.wav".format("conclusion", i)), 
                                             conclusion)
             master_storyline += conclusion
-            with open(os.path.join(OUTPUT_DIR, "raw_story.txt"), "w") as f:
-                f.write(master_storyline)  
+            with open(story_file_path, "w") as f:
+                    f.write(master_storyline) 
 
             # Explicit close  
             pool.close()
@@ -346,6 +353,8 @@ def start_story_generation_SEQ_MODE(starting_prompt, workout_input, gpu, input_t
             pool.terminate()   
             print("Workers terminated.")
             exit()
+
+    story_complete=True
     # THE END
 
 if __name__ == '__main__':
@@ -358,5 +367,5 @@ if __name__ == '__main__':
     #start_story_generation_SEQ_MODE(starting_prompt, "inputs/workout4.csv", gpu=torch.cuda.is_available(), input_type=input_type, debug=True)
     name = random.choice(["Sebastian", "Rory", "Nolan", "Orlando", "Serena"])
     starting_prompt = generate_random_prompt(name)
-    start_story_generation_SEQ_MODE(starting_prompt, "inputs/workout_all.csv", gpu=torch.cuda.is_available(), input_type=input_type, debug=False, actual_exercise=True)
+    start_story_generation_SEQ_MODE(starting_prompt, "inputs/workout_all.csv", gpu=torch.cuda.is_available(), input_type=input_type, debug=True, actual_exercise=False)
     

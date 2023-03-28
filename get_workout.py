@@ -9,7 +9,7 @@ def get_workout(file, shuffle=False):
         for row in file:
             for _ in range(row.sets):
 
-                    workout.append([row.name,row.reps,30])
+                    workout.append([row.name,row.reps,90])
     else:  # CSV File
         with open(file, newline='', encoding='utf-8-sig') as csvfile:
             reader = csv.DictReader(csvfile)

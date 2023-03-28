@@ -33,16 +33,16 @@ For the main character, you must absolutely avoid using quotation marks for thei
 Only the sidekick's words should be quoted.
 """
 
-PRE_STORY_WORKOUT_USER="""
+TEMP_PRE_STORY_WORKOUT_USER="""
 Throughout the story, seamlessly incorporate the following exercise: {}, by
 Transform it into a natural action or challenge the characters face. 
 Creatively integrate this exercise into the narrative, making it feel like an integral part of the characters' quest. 
 Ensure that the exercise is smoothly woven into the storyline and enhances the plot's engagement."
 """
 
-PRE_STORY_WORKOUT_HOLD_USER = PRE_STORY_WORKOUT_USER
+TEMP_PRE_STORY_WORKOUT_HOLD_USER = TEMP_PRE_STORY_WORKOUT_USER
 
-TEMP_PRE_STORY_WORKOUT_USER="""
+PRE_STORY_WORKOUT_USER="""
 Continue the story where the main character performs a '{}' motion multiple times in a scenario that is well integrated into the story. 
 The main character must exert energy to perform the task. It must be a crucial aspect of the story and have good flow. The story should be very detailed and descriptive.
 
@@ -60,9 +60,7 @@ Holding a straight body position: aiming a sniper, hiding without movement, wait
 Continue the story until the main character stops exerting energy, and stop the output at that point. Do not end the story.
 """
 
-
-
-TEMP_PRE_STORY_WORKOUT_HOLD_USER="""
+PRE_STORY_WORKOUT_HOLD_USER="""
 Continue the story where the main character holds a '{}' motion in a scenario that is well integrated into the story. 
 The main character must exert energy to perform the task. It must be a crucial aspect of the story and have good flow. The story should be very detailed and descriptive.
 

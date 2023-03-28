@@ -30,6 +30,7 @@ def query_gpt(prompt, engine='text-davinci-003', response_length=256,
     answer = response.choices[0]['text']
     return answer
 
+# gpt-4 is great, but a bit slow
 @retry(wait=wait_random_exponential(min=1, max=60), stop=stop_after_attempt(6))
 def query_chatgpt(prompt, system_prompt, response_length=256,
          temperature=0.7, top_p=1, frequency_penalty=1, presence_penalty=1, **kwargs):

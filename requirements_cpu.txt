@@ -26,6 +26,7 @@ et-xmlfile==1.1.0
 ffmpeg-python==0.2.0
 filelock==3.9.0
 Flask==2.2.2
+Flask-Executor==1.0.0
 Flask-Session==0.4.0
 Flask-SQLAlchemy==3.0.3
 Flask-WTF==1.1.1
@@ -128,6 +129,7 @@ tzlocal==4.2
 umap-learn==0.5.1
 unidic-lite==1.0.8
 urllib3==1.26.12
+Wave==0.0.2
 Werkzeug==2.2.2
 whisper==1.0
 WTForms==3.0.1

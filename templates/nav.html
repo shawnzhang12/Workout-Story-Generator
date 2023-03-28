@@ -1,9 +1,27 @@
 {% extends 'base.html' %}
 
 {% block content %}
-<h2>Great Job!</h2>
-<pre>{% raw %}
-Take a good rest before your next adventure...
-{% endraw %}</pre>
+
+<div class="container">
+    <h1>Story</h1>
+    <div id="story-container">
+        <!-- Story content will be appended here -->
+    </div>
+</div>
+
+<script>
+    // Fetch the latest story chunks and update the content on the page
+    function updateStory() {
+        fetch('/get_story_chunks')
+            .then(response => response.json())
+            .then(data => {
+                const storyContainer = document.getElementById('story-container');
+                storyContainer.innerHTML = data.chunks.join('<br>');
+            });
+    }
+
+    // Periodically update the story content
+    setInterval(updateStory, 10000);  // Update every 5 seconds
+</script>
 
 {% endblock %}
