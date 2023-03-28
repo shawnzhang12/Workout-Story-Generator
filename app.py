@@ -40,9 +40,11 @@ bootstrap = Bootstrap5(app)
 db = SQLAlchemy(app)
 csrf_token = CSRFProtect(app)
 
-# GLOBAL VARIABLES
+# GLOBAL VARIABLES, story complete requests doesnt go through flask executor
 story_complete = False
 story_file_path = os.path.join("outputs","master_storyline.txt")
+if os.path.exists(story_file_path):
+    os.remove(story_file_path)
 
 
 class Exercise(db.Model):
