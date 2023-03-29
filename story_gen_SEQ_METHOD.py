@@ -229,7 +229,7 @@ def start_story_generation_SEQ_MODE(starting_prompt, workout_input, gpu, input_t
 
     OUTPUT_DIR, SOUNDS_DIR, SPEECH_DIR = folder_creation()
     logging.basicConfig(format='%(asctime)s:%(levelname)s:%(message)s', filename=os.path.join(OUTPUT_DIR, "logfile.log"), datefmt='%m/%d/%Y %I:%M:%S %p', level=logging.INFO)
-    story_file_path = os.path.join("outputs", "master_storyline.txt")
+    story_file_path = os.path.join("outputs", "master_storyline_{}.txt")
 
     workout = get_workout(workout_input, shuffle=True)
     logging.info("Complete Workout: {}".format(workout))
@@ -237,6 +237,7 @@ def start_story_generation_SEQ_MODE(starting_prompt, workout_input, gpu, input_t
     words_to_tokens = 1.4
     master_storyline = ""
     summarized_storyline = ""
+    count = 0
 
     # Initialize Text-to-speech process, just use one TTS model for now
     with multiprocessing.Pool(min(2, multiprocessing.cpu_count()), initializer=initialize_worker, initargs=(gpu,)) as pool: 
@@ -246,8 +247,9 @@ def start_story_generation_SEQ_MODE(starting_prompt, workout_input, gpu, input_t
             master_storyline, usage = query_chatgpt(prompt_constants.BEGINNING.format(starting_prompt), prompt_constants.SYSTEM_PROMPT, response_length=256)
             logging.info("Storyline (Beginning): {}".format(master_storyline))
             
-            with open(story_file_path, "w") as f:
+            with open(story_file_path.format(count), "w") as f:
                 f.write(master_storyline) 
+                count += 1
 
             process_and_play_text(pool, master_storyline, "", SPEECH_DIR, 0, "introduction", gpu, debug)
             add_to_complete_annotation_file("(Introduction)", "Introduction", OUTPUT_DIR, count_words(master_storyline), 
@@ -283,8 +285,9 @@ def start_story_generation_SEQ_MODE(starting_prompt, workout_input, gpu, input_t
                 
                 master_storyline = master_storyline + " " + user_continued_story
                 summarized_storyline = summarized_storyline + user_continued_story
-                with open(story_file_path, "w") as f:
+                with open(story_file_path.format(count), "w") as f:
                     f.write(master_storyline) 
+                    count += 1
 
                 ########## WORKOUT STORY ##########
                 motion = get_motion(exercise, actual_exercise=actual_exercise)
@@ -305,8 +308,9 @@ def start_story_generation_SEQ_MODE(starting_prompt, workout_input, gpu, input_t
                 master_storyline = master_storyline + " " + pre_workout
                 summarized_storyline = summarized_storyline + " " + pre_workout
 
-                with open(story_file_path, "w") as f:
+                with open(story_file_path.format(count), "w") as f:
                     f.write(master_storyline) 
+                    count += 1
 
                 add_to_eval_file(exercise, reps, pre_workout, OUTPUT_DIR)
                 logging.info("Storyline ({} words, suppose to be {} words) {} (WORKOUT STORY): {}".format(count_words(pre_workout), pre_workout_response_length,i, pre_workout))
@@ -339,8 +343,9 @@ def start_story_generation_SEQ_MODE(starting_prompt, workout_input, gpu, input_t
                                             usage["completion_tokens"], os.path.join(SPEECH_DIR, "story_{}_{}_complete.wav".format("conclusion", i)), 
                                             conclusion)
             master_storyline += conclusion
-            with open(story_file_path, "w") as f:
-                    f.write(master_storyline) 
+            with open(story_file_path.format(count), "w") as f:
+                f.write(master_storyline) 
+                count += 1
 
             # Explicit close  
             pool.close()

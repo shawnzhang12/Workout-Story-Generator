@@ -42,10 +42,7 @@ csrf_token = CSRFProtect(app)
 
 # GLOBAL VARIABLES, story complete requests doesnt go through flask executor
 story_complete = False
-story_file_path = os.path.join("outputs","master_storyline.txt")
-if os.path.exists(story_file_path):
-    os.remove(story_file_path)
-
+count = 0
 
 class Exercise(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -96,18 +93,21 @@ def index():
 @app.route('/get_story_chunks', methods=['GET'])
 def get_story_chunks():
     global story_complete  # Access the global variable
+    global count
+    story_file_path = os.path.join("outputs","master_storyline_{}.txt".format(count))
+    old_story_file_path = os.path.join("outputs","master_storyline_{}.txt".format(count-1))
 
-    print(os.getcwd())
-    print(story_file_path)
     if not os.path.exists(story_file_path):
-        print("HMM")
-        return json.dumps({"chunks": [], "completed": False})
+        if not os.path.exists(old_story_file_path):
+            return json.dumps({"chunks": [], "completed": False})
+        else:
+            with open(old_story_file_path, "r") as story_file:
+                story_chunks = story_file.readlines()
+                return json.dumps({"chunks": story_chunks, "completed": story_complete})
 
-    print("it exists")
     with open(story_file_path, "r") as story_file:
         story_chunks = story_file.readlines()
-        print(story_chunks)
-
+        count += 1
     return json.dumps({"chunks": story_chunks, "completed": story_complete})
 
 @app.route('/story', methods=['GET', 'POST'])
