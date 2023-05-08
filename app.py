@@ -20,7 +20,7 @@ from flask_executor import Executor
 
 # Local modules
 from get_prompt import generate_random_prompt
-from story_gen_SEQ_METHOD import start_story_generation_SEQ_MODE
+from story_generation import start_sequential_story_generation
 
 # Initializing Flask app and setting configuration parameters
 app = Flask(__name__, static_folder='static')
@@ -79,7 +79,7 @@ def index():
     exercises = Exercise.query.all()
 
     if form.random_prompt.data == True:
-        if form.name.data is not None and form.name.data is not "":
+        if form.name.data is not None and form.name.data != "":
             form.starting_prompt.data = generate_random_prompt(form.name.data)
         else:
             name = random.choice(["Sebastian", "Rory", "Nolan", "Orlando", "Serena"])
@@ -87,7 +87,7 @@ def index():
     elif form.submit.data == True:
         if form.validate_on_submit():        
             flash('Loading your story!')
-            executor.submit(start_story_generation_SEQ_MODE, 
+            executor.submit(start_sequential_story_generation, 
                             starting_prompt=form.starting_prompt.data, 
                             workout_input=exercises, 
                             gpu=torch.cuda.is_available(), 

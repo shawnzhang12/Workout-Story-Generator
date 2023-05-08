@@ -6,7 +6,7 @@ import threading
 import torch
 import random
 import logging
-from typing import Tuple, List, Union
+from typing import Dict, Tuple, List, Union
 from TTS.api import TTS
 
 from utils import add_to_annotation_file, add_to_eval_file, count_words, create_folder

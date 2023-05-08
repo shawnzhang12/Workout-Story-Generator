@@ -4,9 +4,6 @@ import pyaudio
 from datetime import datetime
 from moviepy.editor import *
 
-# Local module import
-from utils import timing
-
 def concatenate_audio_moviepy(audio_clip_paths, output_path, background_music=None):
     """
     Concatenates multiple audio files into one using MoviePy and saves it to `output_path`.
@@ -59,14 +56,12 @@ def play_audio(file_path, duration, stop_event=None):
     # Terminate the PyAudio object
     p.terminate()
 
-@timing
 def play_waiting(file_path, stop_event):
     """
     Plays a waiting sound for a maximum of 30 seconds or until stop_event is set.
     """
     play_audio(file_path, 30, stop_event)
 
-@timing
 def play_working(file_path, workout_time, debug=False):
     """
     Plays a workout sound for the specified workout time in seconds.
