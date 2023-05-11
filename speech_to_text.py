@@ -1,62 +1,51 @@
 import os
-import speech_recognition as sr
 import logging
-import prompt_constants
+import speech_recognition as sr
 
-def get_user_response(iteration, SPEECH_DIR, debug=False):
+def get_user_response(iteration: int, speech_dir: str, debug: bool = False) -> str:
+    """
+    Gets user speech input and returns the transcribed text.
+
+    Parameters
+    ----------
+    iteration : int
+        Current iteration count.
+    speech_dir : str
+        Directory path to save the speech file.
+    debug : bool, optional
+        If True, returns a default transcription.
+
+    Returns
+    -------
+    str
+        Transcribed user speech.
+    """
     if debug:
-        response = {
-            "transcription": "Let's continue. Don't end the story."  
-        }
-        return response
+        return "Let's continue. Don't end the story."
 
     recognizer = sr.Recognizer()
     microphone = sr.Microphone()
-
-    if not isinstance(recognizer, sr.Recognizer):
-        raise TypeError("`recognizer` must be `Recognizer` instance")
-    
-    if not isinstance(microphone, sr.Microphone):
-        raise TypeError("`microphone` must be `Microphone` instance")
 
     with microphone as source:
         recognizer.adjust_for_ambient_noise(source)
         audio = recognizer.listen(source, timeout=10)
 
-    # set up the response object
-    response = {
-        "success": True,
-        "error": None,
-        "transcription": None
-    }
+    response = {"success": True, "error": None, "transcription": None}
 
-    # try recognizing the speech in the recording
-    # if a RequestError or UnknownValueError exception is caught,
-    #     update the response object accordingly
     try:
         response["transcription"] = recognizer.recognize_google(audio)
     except sr.RequestError:
-        # API was unreachable or unresponsive
-        response["success"] = False
-        response["error"] = "API unavailable"
+        response.update({"success": False, "error": "API unavailable"})
     except sr.UnknownValueError:
-        # speech was unintelligible
         response["error"] = "Unable to recognize speech"
 
     if response["error"] is None:
-        with open(os.path.join(SPEECH_DIR,"story_{}_mc_response.wav".format(iteration)), "wb") as file:
+        file_path = os.path.join(speech_dir, f"story_{iteration}_mc_response.wav")
+        with open(file_path, "wb") as file:
             file.write(audio.get_wav_data())
-            logging.info("Storing user response. Success.")
+        logging.info("Storing user response. Success.")
     else:
         response["transcription"] = "Let's continue. Don't end the story."   
         logging.info("User response. Failed.")
 
-    if response["transcription"] == "":
-        response = {
-            "transcription": "Let's continue. Don't end the story."  
-        }
-
-    return response["transcription"]
-
-def loop_for_finish():
-    pass
+    return response["transcription"] or "Let's continue. Don't end the story."

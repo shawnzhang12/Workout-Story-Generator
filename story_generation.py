@@ -476,13 +476,17 @@ def start_sequential_story_generation(starting_prompt: str, workout_input: str, 
                 motion = get_motion(exercise, model, actual_exercise=actual_exercise)
                 pre_workout_response_length = int((tts_wpm * (rest_time/2) // 60) * words_to_tokens)
 
-                if 's' in reps: # Check for plank, handstand, and other 'hold' positions
-                    pre_workout, usage = query_chatgpt(summarized_storyline + "\n" + prompt_constants.PRE_STORY_WORKOUT_HOLD_USER.format(motion, motion), prompt_constants.SYSTEM_PROMPT, model, response_length=pre_workout_response_length)
+                if actual_exercise:
+                    pre_workout, usage = query_chatgpt(summarized_storyline + "\n" + prompt_constants.PRE_STORY_WORKOUT_ACTUAL_EXCERCISE.format(motion, motion), prompt_constants.SYSTEM_PROMPT, model, response_length=pre_workout_response_length)
                     summarized_storyline = summarize_if_needed(summarized_storyline, usage, model)
                 else:
-                    pre_workout, usage = query_chatgpt(summarized_storyline + "\n" + prompt_constants.PRE_STORY_WORKOUT_USER.format(motion, motion), prompt_constants.SYSTEM_PROMPT, model, response_length=pre_workout_response_length)
-                    summarized_storyline = summarize_if_needed(summarized_storyline, usage, model)
-                pre_workout = clip_text(pre_workout)
+                    if 's' in reps: # Check for plank, handstand, and other 'hold' positions
+                        pre_workout, usage = query_chatgpt(summarized_storyline + "\n" + prompt_constants.PRE_STORY_WORKOUT_HOLD_USER.format(motion, motion), prompt_constants.SYSTEM_PROMPT, model, response_length=pre_workout_response_length)
+                        summarized_storyline = summarize_if_needed(summarized_storyline, usage, model)
+                    else:
+                        pre_workout, usage = query_chatgpt(summarized_storyline + "\n" + prompt_constants.PRE_STORY_WORKOUT_USER.format(motion, motion), prompt_constants.SYSTEM_PROMPT, model, response_length=pre_workout_response_length)
+                        summarized_storyline = summarize_if_needed(summarized_storyline, usage, model)
+                    pre_workout = clip_text(pre_workout)
 
                 master_storyline = master_storyline + " " + pre_workout
                 summarized_storyline = summarized_storyline + " " + pre_workout
@@ -535,9 +539,13 @@ def start_sequential_story_generation(starting_prompt: str, workout_input: str, 
     # THE END
 
 if __name__ == '__main__':
+    for filename in os.listdir("./outputs/"):
+        if filename.startswith("master_storyline"):
+            os.remove(os.path.join("./outputs/", filename))
+
     input_type="audio"
     name = random.choice(["Sebastian", "Rory", "Nolan", "Orlando", "Serena"])
     starting_prompt = generate_random_prompt(name)
 
-    start_sequential_story_generation(starting_prompt, "inputs/workout_all.csv", gpu=torch.cuda.is_available(), input_type=input_type, debug=True, actual_exercise=False)
+    start_sequential_story_generation(starting_prompt, "inputs/workout1.csv", gpu=torch.cuda.is_available(), input_type=input_type, debug=True, actual_exercise=True)
     
