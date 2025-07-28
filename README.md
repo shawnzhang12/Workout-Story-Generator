@@ -1,6 +1,6 @@
 ## Workout Story Generator
 
-This project is a fun application of GPT's story generation capabilities integrated with a customizable workout routine for a more engaging, immersive workout. 
+### This project is a fun application of GPT's story generation capabilities integrated with a customizable workout routine for a more engaging, immersive workout. 
 
 Some people (referring to myself) tend to be bored of the monotonous, repetitive nature of exercise routines and lose motivation to persist or even start. 
 Also, it's easy to get distracted between sets as there is nothing really to do but be browse your phone -- a dangerous context switch. 
