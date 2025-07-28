@@ -1,4 +1,4 @@
-## Workout Story Generator
+# Workout Story Generator
 
 ### This project is a fun application of GPT's story generation capabilities integrated with a customizable workout routine for a more engaging, immersive workout. 
 
